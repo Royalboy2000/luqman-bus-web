@@ -8,9 +8,15 @@ import {
 
 const app = express();
 const port = process.env.PORT || 3000;
+import path from 'path';
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, '../../dist')));
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) return next();
+  res.sendFile(path.join(__dirname, '../../dist/index.html'));
+});
 
 // ── Row mappers ────────────────────────────────────────────────────────────────
 

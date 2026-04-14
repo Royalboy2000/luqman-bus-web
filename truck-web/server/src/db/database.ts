@@ -7,7 +7,7 @@ const db = new Database(dbPath);
 db.pragma('foreign_keys = ON');
 db.pragma('journal_mode = WAL');
 
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 // Schema migration: drop and recreate if version mismatch
 let needsMigration = false;

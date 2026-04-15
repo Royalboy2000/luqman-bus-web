@@ -3,22 +3,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Truck, Lock, User } from "lucide-react";
 import { Link } from "react-router-dom";
-
-const DEFAULT_USERNAME = "admin";
-const DEFAULT_PASSWORD = "admin123";
+import { api } from "@/lib/api";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function LoginPage({ onLogin }: { onLogin: () => void }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD) {
+    setLoading(true);
+    try {
+      const response = await api.post<any>("/login", { username, password });
       localStorage.setItem("fleetops_auth", "true");
+      localStorage.setItem("fleetops_user", JSON.stringify(response));
       onLogin();
-    } else {
-      setError("Invalid username or password");
+    } catch (error: any) {
+      toast({
+        title: "Login Failed",
+        description: error.message || "Invalid username or password",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -41,7 +50,7 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
               <Input
                 placeholder="Enter username"
                 value={username}
-                onChange={e => { setUsername(e.target.value); setError(""); }}
+                onChange={e => setUsername(e.target.value)}
                 className="pl-10"
                 required
               />
@@ -55,14 +64,15 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
                 type="password"
                 placeholder="Enter password"
                 value={password}
-                onChange={e => { setPassword(e.target.value); setError(""); }}
+                onChange={e => setPassword(e.target.value)}
                 className="pl-10"
                 required
               />
             </div>
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" className="w-full">Sign In</Button>
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "Signing In..." : "Sign In"}
+          </Button>
           <p className="text-xs text-muted-foreground text-center">Default: admin / admin123</p>
           <div className="border-t border-slate-800 pt-4 mt-2">
             <p className="text-sm text-muted-foreground text-center">

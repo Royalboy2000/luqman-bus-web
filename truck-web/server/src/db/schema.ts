@@ -77,3 +77,20 @@ export const MaintenanceSchema = z.object({
   cost: z.number().optional(),
   notes: z.string().optional(),
 });
+
+export const UserSchema = z.object({
+  username: z.string().min(1),
+  password: z.string().min(6),
+  role: z.enum(['admin', 'user']).default('user'),
+});
+
+export const LoginSchema = z.object({
+  username: z.string().min(1),
+  password: z.string().min(1),
+});
+
+export const ChangePasswordSchema = z.object({
+  username: z.string().min(1),
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(6),
+});

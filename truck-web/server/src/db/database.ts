@@ -7,7 +7,7 @@ const db = new Database(dbPath);
 db.pragma('foreign_keys = ON');
 db.pragma('journal_mode = WAL');
 
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 
 // Schema migration: drop and recreate if version mismatch
 let needsMigration = false;
@@ -29,6 +29,7 @@ if (needsMigration) {
     DROP TABLE IF EXISTS clients;
     DROP TABLE IF EXISTS drivers;
     DROP TABLE IF EXISTS trucks;
+    DROP TABLE IF EXISTS users;
     DROP TABLE IF EXISTS expenses;
     DROP TABLE IF EXISTS schema_version;
     PRAGMA foreign_keys = ON;
@@ -40,6 +41,13 @@ db.exec(`
     version INTEGER NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    role TEXT CHECK(role IN ('admin', 'user')) NOT NULL DEFAULT 'user',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
   CREATE TABLE IF NOT EXISTS trucks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     registration TEXT NOT NULL UNIQUE,

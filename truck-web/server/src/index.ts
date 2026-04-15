@@ -1,9 +1,10 @@
+import bcrypt from 'bcryptjs';
 import express from 'express';
 import cors from 'cors';
 import db from './db/database';
 import {
   TruckSchema, DriverSchema, AdvanceSchema, ClientSchema, ClientPaymentSchema,
-  TripSchema, PayableSchema, MaintenanceSchema,
+  TripSchema, PayableSchema, MaintenanceSchema, UserSchema, LoginSchema, ChangePasswordSchema,
 } from './db/schema';
 
 const app = express();
@@ -87,6 +88,45 @@ function rowToPayable(r: any) {
 function rowToMaintenance(r: any) {
   return { id: String(r.id), truckId: String(r.truck_id), date: r.date, serviceType: r.service_type, mileage: r.mileage, cost: r.cost ?? undefined, notes: r.notes || undefined };
 }
+
+// ── Auth ───────────────────────────────────────────────────────────────────────
+
+app.post('/api/login', async (req, res) => {
+  try {
+    const { username, password } = LoginSchema.parse(req.body);
+    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as any;
+    if (!user) return res.status(401).json({ error: 'Invalid username or password' });
+
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) return res.status(401).json({ error: 'Invalid username or password' });
+
+    res.json({ username: user.username, role: user.role });
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
+});
+
+app.post('/api/users/create', async (req, res) => {
+  try {
+    const { username, password, role } = UserSchema.parse(req.body);
+    const passwordHash = await bcrypt.hash(password, 10);
+    const r = db.prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)').run(username, passwordHash, role);
+    res.status(201).json({ id: r.lastInsertRowid, username, role });
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
+});
+
+app.post('/api/users/change-password', async (req, res) => {
+  try {
+    const { username, currentPassword, newPassword } = ChangePasswordSchema.parse(req.body);
+    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as any;
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const valid = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!valid) return res.status(401).json({ error: 'Invalid current password' });
+
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    db.prepare('UPDATE users SET password_hash = ? WHERE username = ?').run(newPasswordHash, username);
+    res.json({ message: 'Password changed successfully' });
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
+});
 
 // ── Trucks ─────────────────────────────────────────────────────────────────────
 

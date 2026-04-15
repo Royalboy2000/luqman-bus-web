@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Lock, X, KeyRound } from "lucide-react";
 import { useState } from "react";
+import { api } from "@/lib/api";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ChangePasswordModalProps {
   open: boolean;
@@ -13,11 +15,52 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // UI only implementation
-    onOpenChange(false);
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "New passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const userData = JSON.parse(localStorage.getItem("fleetops_user") || "{}");
+    const username = userData.username;
+
+    if (!username) {
+      toast({
+        title: "Error",
+        description: "User session not found",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.post("/users/change-password", { username, currentPassword, newPassword });
+      toast({
+        title: "Success",
+        description: "Password changed successfully",
+      });
+      onOpenChange(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to change password",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -77,8 +120,8 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
             </div>
           </div>
           <DialogFooter className="mt-6">
-            <Button type="submit" className="w-full bg-primary hover:bg-[#ED8936] text-slate-900 font-bold">
-              Save Changes
+            <Button type="submit" className="w-full bg-primary hover:bg-[#ED8936] text-slate-900 font-bold" disabled={loading}>
+              {loading ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </form>

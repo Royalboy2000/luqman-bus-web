@@ -3,18 +3,46 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Truck, User, Mail, Lock } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { api } from "@/lib/api";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function RegisterPage() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // UI Only implementation
-    navigate("/");
+    if (password !== confirmPassword) {
+      toast({
+        title: "Registration Failed",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.post("/users/create", { username, password, role: "user" });
+      toast({
+        title: "Account Created",
+        description: "You can now sign in with your credentials",
+      });
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        title: "Registration Failed",
+        description: error.message || "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -84,7 +112,9 @@ export default function RegisterPage() {
               />
             </div>
           </div>
-          <Button type="submit" className="w-full mt-2">Register</Button>
+          <Button type="submit" className="w-full mt-2" disabled={loading}>
+            {loading ? "Creating Account..." : "Register"}
+          </Button>
           <p className="text-sm text-muted-foreground text-center mt-4">
             Already have an account?{" "}
             <Link to="/" className="text-primary hover:underline font-medium">Sign In</Link>
